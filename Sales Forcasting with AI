@@ -1,0 +1,1277 @@
+# Capstone #3: Restaurant Sales Forecasting
+
+### Problem Statement:
+“Fresh Analytics” is a data analytics company that wants to understand and forecast demand for different items across restaurants. You’ve been tasked with building a forecast model using sales data for 3 years for 100 items across 6 restaurants.
+
+### Overview:
+In an ever-changing competitive market, there is a need to take correct decisions and plan for future events that may affect the business. Demand is the most important aspect for a business to achieve its objectives. Many business decisions depend on demand like production, sales, staff requirement, etc. Forecasting is the necessity of business at an international level as well as domestic level.
+Time series analysis serves as the basis for the demand forecast. Tracking selected independent variables over a defined period enables forecasting predictable fluctuations in demand according to a prevailing trend, such as peak versus low periods.
+
+### Input Dataset:
+There are three datasets:
+1.	__sales.csv__: This dataset contains the count of a particular item sold at a particular store/restaurant for different dates.
+
+<table>
+    <tr>
+        <th>Sno.</th>
+        <th>Variable</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <th>1.</th>
+        <th>Date</th>
+        <th>Date of purchase</th>
+    </tr>
+    <tr>
+        <th>2.</th>
+        <th>item_id</th>
+        <th>Item bought</th>
+    </tr>
+    <tr>
+        <th>3.</th>
+        <th>Price</th>
+        <th>Unit price of the item bought</th>
+    </tr>
+    <tr>
+        <th>4.</th>
+        <th>item_count</th>
+        <th>Total Count of the item bought on that day</th>
+    </tr>
+</table>
+
+2.	__items.csv__: This dataset contains information about items.
+
+<table>
+    <tr>
+        <th>Sno.</th>
+        <th>Variable</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <th>1.</th>
+        <th>id</th>
+        <th>Item id</th>
+    </tr>
+    <tr>
+        <th>2.</th>
+        <th>store_id</th>
+        <th>Store at which the item is available</th>
+    </tr>
+    <tr>
+        <th>3.</th>
+        <th>name</th>
+        <th>Name of the item</th>
+    </tr>
+    <tr>
+        <th>4.</th>
+        <th>kcal</th>
+        <th>Measure of energy nutrients (calories) in the item</th>
+    </tr>
+    <tr>
+        <th>5.</th>
+        <th>cost</th>
+        <th>Unit price of the item bought</th>
+    </tr>
+</table>
+
+3.	__restaurants.csv__: This dataset provides information about the restaurants / store.
+
+<table>
+    <tr>
+        <th>Sno.</th>
+        <th>Variable</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <th>1.</th>
+        <th>id</th>
+        <th>Restaurant/store id</th>
+    </tr>
+    <tr>
+        <th>2.</th>
+        <th>name</th>
+        <th>Name of the item</th>
+    </tr>
+</table>
+
+### Directions:
+
+1. Preliminary analysis. </br>
+    a. Import the datasets. </br>
+    b. Check for shape structure and anomalies in the dataset.	</br>
+    c. Merge data to create a single dataset with date item id, price, item count, item names, kcal values, store id, and store name.</br>
+
+2. Exploratory data analysis: </br>
+    a. Study overall sales at the date level to understand the sales pattern. </br>
+    b. What are the sales values across different days of the week? </br>
+    c. Are there any specific observations for sales data for different months of the year? </br>
+    d. Observe the distribution of sales across different quarters averaged over years. Do you find any pattern in sales? </br>
+    e. How are the different restaurants performing? Which restaurant had the most sales? Also study the sales for each restaurant across different years months and days. </br>
+    f. Which are the most popular items (overall) and which restaurants are selling these items? Also, find out the most popular item at each restaurant. </br>
+    g. Is the restaurant with the highest number of sales also making the most money per day? </br>
+    h. What is the costliest item at each of the restaurants and what are their calorie counts? </br>
+3. Forecasting using Machine Learning Algorithms </br>
+    a. Develop a linear regression, random forest, and XGBoost model to predict for the model with the given data. Compare and comment on the results obtained. </br>
+        i. Create required features for development of these models like day of the week, quarter of the year, month, year, day of the month etc.
+        ii. Use the last 6 months data as test data.
+        iii. Compute the RMSE values for each of the models to compare their performances.
+        iv. Also use the best models to forecast for 1 year.
+    b. Time Series Modelling : </br>
+        i. Plot seasonality, trend, and irregular components over time for the sales data.
+        ii. Based on trend and seasonality, choose an appropriate exponential smoothing method to forecast using last six months of the data as validation set.
+        iii. Perform augmented Dickey-Fuller test (ADF) to check for stationarity for time series.
+        iv. Look at the ACF and PACF plots and strategize for ARIMA modeling. Find appropriate values of p, d and q and forecast for next 3 months. For model validation, find the MAPE of 3 months.
+    c. Develop each of the models to check if a restaurant wise analysis might yield a better forecast. </br>
+4. Forecasting using Deep Learning Algorithms: </br>
+    a. Use sales amount for predictions here instead of item count. </br>
+    b. Develop a LSTM model for predictions. </br>
+        i. Define train and test series as above.
+        ii. Generate Synthetic data for last 12 months.
+        iii. Define a LSTM model. Compile and train the model.
+        iv. Use the model for evaluation predicting for the test data.
+    c. Compute MAPE and comment on the  model performance. </br>
+    d. Now, develop another model using the entire series for training and use it to forecast for the next 3 months. </br>
+"""
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+#!pip install pmdarima
+!pip install pmdarima
+
+#import sys
+#print(sys.executable)
+
+#!/usr/local/bin/python3.10 -m pip install pmdarima
+
+#from pmdarima.arima import auto_arima
+
+# Sample check to see if the import works without error
+#print("pmdarima is successfully installed!")
+
+# for EDA
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# for prediction models
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+import xgboost as xgb
+
+# time series forecast
+from statsmodels.tsa.seasonal import seasonal_decompose
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.stattools import acf, pacf
+from pmdarima.arima import auto_arima
+
+# time series forecast using deep learning
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.preprocessing.sequence import TimeseriesGenerator
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import LSTM
+from tensorflow.keras.callbacks import EarlyStopping
+# Evaluation metrics
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, mean_absolute_percentage_error
+
+# plt.style.use("fivethirtyeight")
+pal = sns.color_palette()
+pal_list = list(pal)
+
+# for image study
+import torch
+import datetime as dt
+import os
+import tqdm
+
+#if it says that pmarima does not exist clear kernel and rerun the install pip and rerun this cell then all remaining cells
+
+# Import the three datasets - items, restaurants, and sales
+items_path = '/content/drive/MyDrive/Data/items.csv'
+restaurants_path = '/content/drive/MyDrive/Data/resturants.csv'
+sales_path = '/content/drive/My Drive/Data/sales.csv'
+
+
+
+Items = pd.read_csv(items_path)
+Restaurants = pd.read_csv(restaurants_path)
+Sales = pd.read_csv(sales_path)
+
+items = Items
+restaurants = Restaurants
+sales = Sales
+
+# Check the info of the sales dataset
+sales.info()
+
+# Change the date column's datatype to datetime
+sales['date'] = pd.to_datetime(sales['date'])
+sales.dtypes
+
+# Check the info of the items dataset
+items.info()
+
+# Check the info of the restaurants dataset
+restaurants.info()
+
+"""## Merge data to create a single dataset with date item id, price, item count, item names, kcal values, store id and store name.
+
+"""
+
+sales.head(2)
+
+items.head(2)
+
+sales.shape
+
+sales.head()
+
+# merge the sales and items datasets on item id. Perform a left join of the items table to the sales table.
+items.rename(columns={'id': 'item_id'}, inplace=True)
+merged_data = pd.merge(sales, items, on='item_id', how='left')
+
+restaurants
+
+merged_data.head(2)
+
+# merge the merged dataset with the restaurants table on the store id.
+restaurants.rename(columns={'id': 'store_id'}, inplace=True)
+data = pd.merge(merged_data, restaurants, on='store_id', how='left')
+Data = pd.merge(merged_data, restaurants, on='store_id', how='left')
+
+Data.head(2)
+
+data.head(2)
+
+#(data.item_id == data.id_x).all()
+#data.rename(columns = {"item_id" : "id_x", "store_id": "id_y"}, inplace = True)
+
+data.head(2)
+
+#(Data.store_id == data.id_y).all()
+#(Data.item_id == data.id_x).all()
+
+"""## Rename the columns for easier understanding and drop the duplicate columns"""
+
+data.rename(columns = {"name_x" : "item_name", "name_y": "restaurant_name"}, inplace = True)
+
+#data.drop(columns = ['id_x', 'id_y', 'cost'], inplace = True)
+
+data.head(10)
+
+"""# Study overall sales date-wise to understand the sales pattern."""
+
+# Plot a graph to view sum of item_count at a date level.
+daily_item_count = data.groupby('date')['item_count'].sum()
+plt.figure(figsize=(10, 6))
+daily_item_count.plot(kind='line', color='blue')
+plt.title('Sum of Item Count at Date Level')
+plt.xlabel('date')
+plt.ylabel('Sum of Item Count')
+plt.xticks(rotation=45)
+plt.grid(axis='y')
+plt.tight_layout()
+plt.show()
+
+"""## What are the sales values across different days of the week?"""
+
+# convert datetime to days of the week
+data['weekday'] = data['date'].dt.dayofweek
+
+import calendar
+day_names = list(calendar.day_name)
+
+# Plot the sales data across the different days of the week. (ex: Monday, Tuesday, etc.
+# Define day names for labeling
+day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+# Group by day of the week and calculate total sales
+daily_sales = data.groupby('weekday')['item_count'].sum()
+# set plot figure size
+plt.figure(figsize=(10, 6))
+# use the grouped data set to build the plot selecting the type and color
+daily_sales.plot(kind='bar', color='blue')
+# set the title for the plot
+plt.title('Total Sales Across Different Days of the Week')
+# set the x & y labels
+plt.xlabel('Day of the Week')
+plt.ylabel('Total Sales')
+# plot the labels for x data using ticks rotation makes it more readable
+plt.xticks(ticks=daily_sales.index, labels=[day_names[i] for i in daily_sales.index], rotation=45)
+# set the grid to the y axis
+plt.grid(axis='y')
+# adjust layout
+plt.tight_layout()
+# display the graph
+plt.show()
+
+"""## Are there any specific observations for sales data for different months of the year?"""
+
+data['month_name'] = data.date.dt.month_name()
+data.head()
+
+months = list(calendar.month_name)[1:]
+
+# Plot the sales data at a month level
+# Define months names for labeling
+month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+monthly_sales = data.groupby('month_name')['item_count'].sum()
+plt.figure(figsize=(10, 6))
+monthly_sales.plot(kind='bar', color='blue')
+plt.title('Total Sales Across Different Months')
+plt.xlabel('Months')
+plt.ylabel('Total Sales')
+plt.xticks(ticks=range(len(month_names)), labels=month_names, rotation=45)
+plt.grid(axis='y')
+plt.tight_layout()
+plt.show()
+
+"""## Observe the distribution of sales across different quarters averaged over years. Do you find any pattern in sales there?
+
+"""
+
+data['quarter'] = data.date.dt.quarter
+
+data
+
+# Plot the sales data at the quarter level
+quarterly_sales = data.groupby('quarter')['item_count'].sum()
+plt.figure(figsize=(10, 6))
+quarterly_sales.plot(kind='bar', color='red')
+plt.title('Total Sales Across yearly quarters')
+plt.xlabel('quarters')
+plt.ylabel('Total Sales')
+plt.xticks(rotation=0)
+plt.grid(axis='y')
+plt.tight_layout()
+plt.show()
+
+data['year'] = data.date.dt.year
+data.head()
+
+data['quart-year'] = "Q" + data.quarter.astype(str) + "-" + data.year.astype(str)
+
+# Plot the sales data at a quarter and year level
+quarterly_sales = data.groupby('quart-year')['item_count'].sum()
+plt.figure(figsize=(10, 6))
+quarterly_sales.plot(kind='bar', color='lightgreen')
+plt.title('Total Sales Across yearly quarters')
+plt.xlabel('quarters')
+plt.ylabel('Total Sales')
+plt.xticks(rotation=0)
+plt.grid(axis='y')
+plt.tight_layout()
+plt.show()
+
+"""## How are the different restaurants performing? Which restaurant had the most sales? Also study the sales for each restaurant across different years months and days.
+
+"""
+
+data.head()
+
+data.groupby('restaurant_name')[['item_count']].sum()
+
+#data['item_name']=data['item_name'].astype('category'
+data.info()
+#data['item_name'].cat.codes
+
+# Plot the number of unique items in each restaurant.
+unique_items_per_restraunt = data.groupby('restaurant_name')[['item_name']].nunique()
+plt.figure(figsize=(10, 6))
+unique_items_per_restraunt.plot(kind='bar', color='red')
+plt.title('Count of unique Items')
+plt.xlabel('Restraunts')
+plt.ylabel('Number of Unique Items')
+plt.xticks(rotation=0)
+plt.grid(axis='y')
+plt.tight_layout()
+plt.show()
+
+"""## restaurant level sales"""
+
+# Plot the sales data for each restaurant
+restaurant_sales = data.groupby('restaurant_name')['item_count'].sum()
+plt.figure(figsize=(10, 6))
+restaurant_sales.plot(kind='bar', color='skyblue')
+plt.title('Total Sales for Each Restaurant')
+plt.xlabel('Restaurant')
+plt.ylabel('Total Sales')
+plt.xticks(rotation=45)
+plt.grid(axis='y')
+plt.tight_layout()
+plt.show()
+
+"""# year wise for each restaurant"""
+
+Data.head()
+
+data.head()
+
+plot_data = data.pivot_table(index = 'quart-year', columns = 'restaurant_name',values = 'item_count', aggfunc = 'sum')
+
+# Plot the sales data for each restaurant at a quarter and year level
+plt.figure(figsize=(12, 8))
+plot_data.plot(kind='bar', stacked=True, colormap='viridis')
+plt.title('Sales Data by Quarter-Year and Restaurant')
+plt.xlabel('Quarter-Year')
+plt.ylabel('Total Sales')
+plt.xticks(rotation=45)
+plt.legend(title='Restaurant', bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.grid(axis='y')
+plt.tight_layout()
+plt.show()
+
+# plot the sales data for each restaurant at a month level.
+data['month'] = data['date'].dt.month
+
+# Group by 'restaurant_name' and 'month', then calculate total sales (sum of 'item_count') for each group
+monthly_sales = data.groupby(['restaurant_name', 'month'])['item_count'].sum()
+
+# Plotting
+plt.figure(figsize=(12, 8))
+monthly_sales.unstack().plot(kind='bar', stacked=True, colormap='viridis')  # Stacked bar plot
+plt.title('Monthly Sales Data by Restaurant')
+plt.xlabel('Month')
+plt.ylabel('Total Sales')
+plt.xticks(rotation=45)  # Rotate x-axis labels if needed
+plt.legend(title='Months', bbox_to_anchor=(1.05, 1), loc='upper left')  # Place legend outside the plot
+plt.grid(axis='y')  # Show grid lines on y-axis
+plt.tight_layout()
+plt.show()
+
+# plot the sales data for each restaurant across the days of the week.
+day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+# Group by 'restaurant_name' and 'day_of_week', then calculate total sales (sum of 'item_count') for each group
+daily_sales = data.groupby(['restaurant_name', 'weekday'])['item_count'].sum()
+
+# Pivot the data to reshape it for plotting
+plot_data = daily_sales.unstack()
+
+# Plotting
+plt.figure(figsize=(12, 8))
+plot_data.plot(kind='bar', colormap='viridis')  # Bar plot
+plt.title('Sales Data by Day of the Week and Restaurant')
+plt.xlabel('Day of the Week')
+plt.ylabel('Total Sales')
+plt.xticks(range(7), day_names, rotation=45)  # Set x-axis labels to day names
+plt.legend(title='Restaurant', bbox_to_anchor=(1.05, 1), loc='upper left')  # Place legend outside the plot
+plt.grid(axis='y')  # Show grid lines on y-axis
+plt.tight_layout()
+plt.show()
+
+"""# Which are the most popular items (overall) and at which restaurant are they being sold? Also, find out the most popular item at each restaurant
+
+"""
+
+# Plot the sales volume of the most popular items sold across the 6 restaurants (desceding order of sales volume)
+item_sales = data.groupby(['item_name', 'restaurant_name'])['item_count'].sum().reset_index()
+
+# Calculate total sales volume (sum of 'item_count') for each item across all restaurants
+total_sales_per_item = item_sales.groupby('item_name')['item_count'].sum()
+
+# Sort items based on total sales volume in descending order
+top_items = total_sales_per_item.sort_values(ascending=False).head(10)  # Select top 10 items by sales volume
+
+# Filter item_sales DataFrame to include only the top items
+top_item_sales = item_sales[item_sales['item_name'].isin(top_items.index)]
+
+# Plotting
+plt.figure(figsize=(12, 8))
+for item_name, group in top_item_sales.groupby('item_name'):
+    group.plot(x='restaurant_name', y='item_count', kind='bar', label=item_name)
+
+plt.title('Sales Volume of Top Items Across Restaurants')
+plt.xlabel('Restaurant')
+plt.ylabel('Sales Volume')
+plt.xticks(rotation=45)  # Rotate x-axis labels for better readability
+plt.legend(title='Item', bbox_to_anchor=(1.05, 1), loc='upper left')  # Place legend outside the plot
+plt.grid(axis='y')  # Show grid lines on y-axis
+plt.tight_layout()
+plt.show()
+
+data.head()
+
+count_data = data.pivot_table(index = 'item_id', columns = 'store_id',values = 'item_count', aggfunc = 'sum', fill_value = 0 )
+item_ids = count_data.index[count_data.values.argmax(axis = 0)]
+
+"""## popular items restaurant wise"""
+
+#Plot the most popular item for each restaurant
+item_sales = data.groupby(['restaurant_name', 'item_name'])['item_count'].sum().reset_index()
+
+# Identify the most popular item (item with the highest total sales) for each restaurant
+most_popular_items = item_sales.loc[item_sales.groupby('restaurant_name')['item_count'].idxmax()]
+
+# Plotting
+plt.figure(figsize=(12, 8))
+for restaurant_name, group in most_popular_items.groupby('restaurant_name'):
+    plt.bar(restaurant_name, group['item_count'], label=group['item_name'].values[0])
+
+plt.title('Most Popular Item for Each Restaurant')
+plt.xlabel('Restaurant')
+plt.ylabel('Sales Volume')
+plt.xticks(rotation=45)  # Rotate x-axis labels for better readability
+plt.legend(title='Most Popular Item')
+plt.grid(axis='y')  # Show grid lines on y-axis
+plt.tight_layout()
+plt.show()
+
+"""# Is the store making the most sales in terms of count also making most money averaged for a day?
+
+"""
+
+# display a table to find the total sales volume for each restaurant
+restaurant_sales = data.groupby('restaurant_name')['item_count'].sum().reset_index()
+print("Total Sales Volume for Each Restaurant:")
+print(restaurant_sales)
+
+# Create a pivot to see the total sales volume for each restaurant for each year.
+plot_data = data.pivot_table(index = 'year', columns = 'restaurant_name',values = 'item_count', aggfunc = 'sum')
+print("Pivot Table - Total Sales Volume for Each Restaurant for Each Year:")
+print(plot_data)
+
+# Create a sales amount column using the item count and price
+data['sales_amount'] = data['item_count'] * data['price']
+
+# create a pivot table to display the sales amount for each restaurant for each year.
+plot_data = data.pivot_table(index = 'year', columns = 'restaurant_name',values = 'sales_amount', aggfunc = 'sum')
+print("Pivot Table - Total Sales Volume for Each Restaurant for Each Year:")
+print(plot_data)
+
+count_order = data.pivot_table(index = 'store_id',  values = 'item_count', aggfunc = 'sum').squeeze()
+count_order_rest = count_order.sort_values(ascending = False).index
+
+sales_order = data.pivot_table(index = 'store_id',  values = 'sales_amount', aggfunc = 'sum').squeeze()
+sales_order_rest = sales_order.sort_values(ascending = False).index
+
+data.head()
+
+restaurants
+
+"""## Restaurant id 1 - Bob's Diner has disproportionate amoujnts of data.  We will leave it out for this analysis to understand whether the number and sales values match for other restaurants."""
+
+count_order
+
+restaurants.set_index('store_id').loc[count_order_rest]
+
+restaurants.set_index('store_id').loc[sales_order_rest]
+
+"""### Observations:
+Which restaurant has the highest sales volume? Which restaurant has the highest sales amount? Can you draw any other insights from the two datatables above?
+- Record your observations here.
+
+Bob's Diner has the most sales of all the stores
+
+# Which are the costliest item at each of the restaurants and what are their calorie counts?
+"""
+
+# Display the item with the highest unit price from the items table
+item_with_highest_price = data.loc[data['price'].idxmax()]
+print("Item with the Highest Unit Price:")
+print(item_with_highest_price)
+
+# List the 5 most expensive items in the items table.
+#top_expensive_items = data.sort_values(by='price', ascending=False).head(5)
+#print("Top 5 Most Expensive Items:")
+#print(top_expensive_items)
+
+#top_expensive_items = data.sort_values(by='price', ascending=False).head(5)
+#print("Top 5 Most Expensive Items:")
+#print(top_expensive_items[['item_name', 'price']])
+
+#unique_items_df = data.drop_duplicates(subset=['item_id', 'item_name', 'price'])
+#top_five_expensive_items = unique_items_df.head(5)
+#print("Top 5 Most Expensive Unique Items:")
+#print(top_five_expensive_items[['item_name', 'price']])
+
+unique_items_df = data.drop_duplicates(subset='item_name')
+sorted_unique_df = unique_items_df.sort_values(by='price', ascending=False)
+top_5_expensive_unique_items = sorted_unique_df.head(5)
+print("Top 5 Most Expensive Unique Items:")
+print(top_5_expensive_unique_items[['item_name', 'price']])
+
+"""##  max and min cost of items sold at each restaurant"""
+
+# Display the lowest and highest unit price for each restaurant. Also, display the average cost of a dish at each restaurant.
+price_stats = data.groupby('restaurant_name')['price'].agg(['min', 'max'])
+
+# Calculate average cost of a dish at each restaurant
+average_cost = data.groupby('restaurant_name')['price'].mean()
+
+# Display results
+print("Lowest and Highest Unit Price for Each Restaurant:")
+print(price_stats)
+
+print("\nAverage Cost of a Dish at Each Restaurant:")
+print(average_cost)
+
+"""## Develop a linear regression, random forest and XGBoost model to predict for the model with the given data. Compare and comment on the results obtained.
+- Create required features for development of these models like day of the week, quarter of the year, month, year, day of the month etc.
+- Use the last six months data as test data.
+- Compute the RMSE values for each of the models to compare their performances.
+- Also use these models to forecast for 1 year.
+
+"""
+
+data.date.describe()
+
+ts = data.groupby('date')[['item_count']].sum().squeeze()
+
+data.head()
+
+time_series = data.groupby(['date']).agg({'item_count':'sum', 'weekday': lambda x :x.unique()[0],
+                            'quarter' : lambda x :x.unique()[0], 'year': lambda x :x.unique()[0],
+                            'month_name' : lambda x :x.unique()[0],
+                            'year':lambda x :x.unique()[0]})
+
+"""# adding some more features : day of the year, day of the month and week of the year"""
+
+# Add a few features to the time_series dataset: day of the year, day of the month, and week of the year
+time_series.reset_index(inplace=True)
+time_series['date'] = pd.to_datetime(time_series['date'])
+
+time_series['day_of_year'] = time_series['date'].dt.dayofyear
+time_series['day_of_month'] = time_series['date'].dt.day
+time_series['week_of_year'] = time_series['date'].dt.isocalendar().week
+
+time_series
+
+"""## convert the categorical to numeric using ordinal encoder. The input data is ordered in terms of weekday and month name."""
+
+from sklearn.preprocessing import OrdinalEncoder
+
+day_names
+
+#ord_enc = OrdinalEncoder(categories = [months, day_names])
+#ord_enc.fit(time_series[['month_name', 'weekday']])
+#time_series[['month_name', 'weekday']] = ord_enc.transform(time_series[['month_name', 'weekday']])
+
+ord_enc = OrdinalEncoder(categories = [months])
+ord_enc.fit(time_series[['month_name']])
+time_series[['month_name']] = ord_enc.transform(time_series[['month_name']])
+
+time_series
+
+"""## Train Test Split"""
+
+# SPlit the input dataset into training and testing datasets. Add records before 2021-07-01 to the training dataset.
+# All records on or after 2021-07-01 will be a part of the test dataset
+# Set a cut off date
+cutoff_date = pd.to_datetime('2021-07-01')
+train_dataset = time_series[time_series['date'] < cutoff_date]
+test_dataset = time_series[time_series['date'] >= cutoff_date]
+# verify that the data sets split are the proper sizes
+print(f"Training Dataset Size: {len(train_dataset)} records")
+print(f"Testing Dataset Size: {len(test_dataset)} records")
+
+y_var = 'item_count'
+x_vars = time_series.drop(columns = 'item_count').columns
+
+# Split the dependent and independent variables for the training and testing datasets.
+feature_columns = ['weekday', 'quarter', 'year', 'day_of_year', 'day_of_month', 'week_of_year']
+target_column = 'item_count'
+
+x = train_dataset[feature_columns]
+y = train_dataset[target_column]
+
+#x_test = test_dataset[feature_columns]
+#y_test = test_dataset[target_column]
+
+from sklearn.model_selection import train_test_split
+x_train, x_test, y_train, y_test = train_test_split(x, y, train_size=.799, random_state = 2)
+
+print("Training Features Shape:", x_train.shape)
+print("Training Target Shape:", y_train.shape)
+print("Testing Features Shape:", x_test.shape)
+print("Testing Target Shape:", y_test.shape)
+
+"""## Linear Regression"""
+
+# create a linear regression object and fit the training data into the model
+model = LinearRegression()
+# Fitting the model
+model.fit(x_train, y_train)
+
+# Use the LR object to make predictions on the test data
+lr_y_pred = model.predict(x_test)
+predictions = pd.DataFrame({'Actual': y_test, 'Predicted': lr_y_pred})
+print(predictions.head(10))
+
+# PLot the sales data for the test dataset and overlap the predicted values in a different color.
+plt.figure(figsize=(12, 6))
+plt.plot(test_dataset['date'], y_test, label='Actual Sales', color='lightblue')  # Plot actual sales data
+plt.plot(test_dataset['date'], lr_y_pred, label='Predicted Sales', color='red', linestyle='--')  # Plot predicted sales data
+plt.xlabel('Date')
+plt.ylabel('Item Count')
+plt.title('Actual vs Predicted Sales')
+plt.xticks(rotation=45)
+plt.legend()
+plt.show()
+
+# Calculate the RMSE, MAE, and R2_score for the linear regression model.
+lr_rmse = mean_squared_error(y_test, lr_y_pred, squared=False)
+
+# Calculate Mean Absolute Error (MAE)
+lr_mae = mean_absolute_error(y_test, lr_y_pred)
+
+# Calculate R-squared (R2) score
+lr_r2_score = r2_score(y_test, lr_y_pred)
+
+results = pd.DataFrame([lr_rmse, lr_mae,lr_r2_score*100], index = ['RMSE', 'MAE', 'R2_Score'], columns = ['Linear Regression']).round(2)
+results
+
+"""# Random Forest"""
+
+# Create a random forest model object and fit the train dataset into the model
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+# Fit the model using the training data
+rf_model.fit(x_train, y_train)
+
+# Use the RF object to make predictions using the test data.
+y_pred_rf = rf_model.predict(x_test)
+
+# Plot the sales data of the test dataset and overlap the predictions of the Linear Regression and Random Forest models to compare. Use different colors to help differentiate the data.
+plt.figure(figsize=(12, 6))
+plt.plot(test_dataset['date'], y_test, label='Actual Sales', color='lightblue')  # Plot actual sales data
+
+# Plot predictions from Linear Regression model
+plt.plot(test_dataset['date'], lr_y_pred, label='Linear Regression Predictions', color='red', linestyle='--')
+
+# Plot predictions from Random Forest model
+plt.plot(test_dataset['date'], y_pred_rf, label='Random Forest Predictions', color='green', linestyle='-.')
+
+plt.xlabel('Date')
+plt.ylabel('Item Count')
+plt.title('Actual vs Predicted Sales Comparison')
+plt.xticks(rotation=45)
+plt.legend()
+plt.show()
+
+# Calculate the RMSE, MAE, and R2_score for the random forest model
+rf_rmse = np.sqrt(mean_squared_error(y_test, y_pred_rf))
+rf_mae = mean_absolute_error(y_test, y_pred_rf)
+rf_r2_score = r2_score(y_test, y_pred_rf)
+
+results['Random Forest'] = [rf_rmse,rf_mae,rf_r2_score*100]
+results.round(2)
+
+"""## XGBoost"""
+
+x_train.info()
+x_train['week_of_year'] = x_train['week_of_year'].astype('int64')
+
+# BUild an XGBoost and fit the training data into the model
+import xgboost as xgb
+
+# Create an XGBoost regressor object
+xg_reg = xgb.XGBRegressor(objective ='reg:squarederror',
+                          colsample_bytree = 0.3,
+                          learning_rate = 0.1,
+                          max_depth = 5,
+                          alpha = 10,
+                          n_estimators = 100,
+                          random_state=42)
+
+# Fit the model using the training data
+xg_reg.fit(x_train, y_train)
+
+# Optionally, you can predict on the training set or a validation set to check performance
+y_pred = xg_reg.predict(x_train)  # or x_test if you have a test set
+
+# Evaluate the model, e.g., using MSE for a regression problem
+from sklearn.metrics import mean_squared_error
+mse = mean_squared_error(y_train, y_pred)  # or y_test if using test set
+print("MSE: ", mse)
+
+# Create a dataframe to store the feature importance output from the XGB model
+# Plot the features and their importance
+xg_reg = xgb.XGBRegressor(objective ='reg:squarederror',
+                          colsample_bytree = 0.3,
+                          learning_rate = 0.1,
+                          max_depth = 5,
+                          alpha = 10,
+                          n_estimators = 100,
+                          random_state=42)
+xg_reg.fit(x_train, y_train)
+
+# Extract feature importances
+feature_importances = xg_reg.feature_importances_
+
+# Create a DataFrame to store the feature importances
+features_df = pd.DataFrame({
+    'Feature': x_train.columns,
+    'Importance': feature_importances
+})
+
+# Sort the features by importance
+features_df = features_df.sort_values(by='Importance', ascending=False)
+
+# Plotting the feature importances
+plt.figure(figsize=(10, 6))
+plt.barh(features_df['Feature'], features_df['Importance'], color='skyblue')
+plt.xlabel('Importance')
+plt.ylabel('Feature')
+plt.title('Feature Importance from XGBoost Model')
+plt.gca().invert_yaxis()
+plt.show()
+
+x_test.info()
+x_test['week_of_year'] = x_test['week_of_year'].astype('int64')
+
+# Make predictions using the test data
+xg_y_pred = xg_reg.predict(x_test)
+
+if 'y_test' in locals():
+    mse = mean_squared_error(y_test, xg_y_pred)
+    print("Mean Squared Error on Test Set:", mse)
+
+# Plot the test sales data and compare with the linear regression, random forest, and XGB predictions.
+plt.figure(figsize=(12, 6))
+
+# Plot actual data
+plt.plot(y_test.reset_index(drop=True), label='Actual Sales', color='black', marker='o')
+
+# Plot predictions
+plt.plot(lr_y_pred, label='Linear Regression Predictions', color='blue', linestyle='--', marker='x')
+plt.plot(y_pred_rf, label='Random Forest Predictions', color='green', linestyle='--', marker='+')
+plt.plot(xg_y_pred, label='XGBoost Predictions', color='red', linestyle='--', marker='s')
+
+# Adding plot title and labels
+plt.title('Comparison of Actual Sales vs Model Predictions')
+plt.xlabel('Sample Index')
+plt.ylabel('Sales')
+
+# Show legend
+plt.legend()
+
+# Show the plot
+plt.show()
+
+# Calculate the RMSE, MAE, and R2_score for the XGB Boost model
+xgb_rmse = np.sqrt(mean_squared_error(y_test, xg_y_pred))
+xgb_mae = mean_absolute_error(y_test, xg_y_pred)
+xgb_r2_score = r2_score(y_test, xg_y_pred)
+
+results['XGBoost'] = [xgb_rmse,xgb_mae,xgb_r2_score*100]
+results = results.round(2)
+
+results
+
+# PLot the predicted sales data to compare the Linear Regression, Random Forest, and XGB models
+plt.figure(figsize=(12, 8))
+
+# Plotting each model's predictions against each other
+plt.scatter(lr_y_pred, y_pred_rf, alpha=0.5, label='LR vs RF', color='blue')
+plt.scatter(lr_y_pred, xg_y_pred, alpha=0.5, label='LR vs XGB', color='red')
+plt.scatter(y_pred_rf, xg_y_pred, alpha=0.5, label='RF vs XGB', color='green')
+
+# Plot line of perfect agreement
+max_val = max(y_pred.max(), y_pred_rf.max(), xg_y_pred.max())
+min_val = min(lr_y_pred.min(), y_pred_rf.min(), xg_y_pred.min())
+plt.plot([min_val, max_val], [min_val, max_val], 'k--', lw=2)
+
+plt.title('Comparison of Model Predictions')
+plt.xlabel('Model 1 Predictions')
+plt.ylabel('Model 2 Predictions')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+plt.figure(figsize=(14, 7))
+
+# Plot predictions
+plt.plot(lr_y_pred, label='Linear Regression Predictions', color='blue', linestyle='--', marker='x')
+plt.plot(y_pred_rf, label='Random Forest Predictions', color='green', linestyle='--', marker='+')
+plt.plot(xg_y_pred, label='XGBoost Predictions', color='red', linestyle='--', marker='s')
+
+plt.title('Sequential Comparison of Model Predictions')
+plt.xlabel('Sample Index')
+plt.ylabel('Predicted Sales')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Plot the RMSE, MAE, and R2_score for the three models
+lr_rmse = np.sqrt(mean_squared_error(y_test, lr_y_pred))
+rmse_rf = np.sqrt(mean_squared_error(y_test, y_pred_rf))
+xg_rmse = np.sqrt(mean_squared_error(y_test, xg_y_pred))
+
+# Calculate MAE
+lr_mae = mean_absolute_error(y_test, lr_y_pred)
+mae_rf = mean_absolute_error(y_test, y_pred_rf)
+xg_mae = mean_absolute_error(y_test, xg_y_pred)
+
+# Calculate R2 Score
+lr_r2 = r2_score(y_test, lr_y_pred)
+r2_rf = r2_score(y_test, y_pred_rf)
+xg_r2 = r2_score(y_test, xg_y_pred)
+
+models = ['Linear Regression', 'Random Forest', 'XGBoost']
+rmses = [lr_rmse, rmse_rf, xg_rmse]
+maes = [lr_mae, mae_rf, xg_mae]
+r2s = [lr_r2, r2_rf, xg_r2]
+
+x = range(len(models))  # the label locations
+
+# Creating subplots
+fig, ax = plt.subplots(3, 1, figsize=(8, 18))
+
+# Plot RMSE
+ax[0].bar(x, rmses, color='b', width=0.4)
+ax[0].set_title('Root Mean Squared Error (RMSE)')
+ax[0].set_ylabel('RMSE')
+ax[0].set_xticks(x)
+ax[0].set_xticklabels(models)
+
+# Plot MAE
+ax[1].bar(x, maes, color='r', width=0.4)
+ax[1].set_title('Mean Absolute Error (MAE)')
+ax[1].set_ylabel('MAE')
+ax[1].set_xticks(x)
+ax[1].set_xticklabels(models)
+
+# Plot R² Score
+ax[2].bar(x, r2s, color='g', width=0.4)
+ax[2].set_title('R² Score')
+ax[2].set_ylabel('R² Score')
+ax[2].set_xticks(x)
+ax[2].set_xticklabels(models)
+
+# Showing the plot
+plt.tight_layout()
+plt.show()
+
+results
+
+"""## Observations:
+Which model is the best to use for forecasting?
+- Record your observations here.
+"""
+
+time_series.set_index('date', inplace=True)
+
+time_series.index.max()
+
+future_predictors = pd.DataFrame(pd.date_range(start="2022-01-01", end="2022-12-31"), columns=['date'])
+future_predictors.index = pd.to_datetime(future_predictors.date)
+future_predictors.head()
+
+x_train.columns
+
+x_train.head()
+
+future_predictors.date.dt.isocalendar().week
+
+future_predictors['weekday'] = future_predictors.date.dt.day_name()
+future_predictors['quarter'] = future_predictors.date.dt.quarter
+future_predictors['year'] = future_predictors.date.dt.year
+future_predictors['month_name'] = future_predictors.date.dt.month_name()
+future_predictors['day_of_year'] = future_predictors.date.dt.day_of_year
+future_predictors['day_of_month'] = future_predictors.date.dt.day
+future_predictors['week_of_year'] = future_predictors.date.dt.isocalendar().week
+
+future_predictors.head(
+
+)
+
+month_categories = ['January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December']
+weekday_categories = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+ord_enc = OrdinalEncoder(categories=[month_categories, weekday_categories])
+months, weekdays = np.meshgrid(month_categories, weekday_categories, indexing='ij')
+dummy_data = np.column_stack([months.ravel(), weekdays.ravel()])
+ord_enc.fit(dummy_data)
+
+future_predictors[['month_name', 'weekday']] = ord_enc.transform(future_predictors[['month_name', 'weekday']])
+
+future_predictors['predictions'] = rf_model.predict(future_predictors[x_train.columns])
+
+plt.figure(figsize = (15,5))
+plt.plot(time_series.item_count, label = "Actual")
+plt.plot(y_pred_rf, label = "RF Predict")
+plt.plot(future_predictors.predictions, label = "future")
+plt.legend()
+plt.show()
+
+"""# Time Series Modelling :
+- Plot seasonality, trend, and irregular components over time for the sales data.
+- Based on trend and seasonality, choose an appropriate exponential smoothing method to forecast using last six months of the data as validation set.
+- Perform augmented Dickey-Fuller test (ADF) to check for stationarity for time series.
+- Look at the ACF and PACF plots and strategize for ARIMA modeling. Find appropriate values of p, d and q and forecast for next 3 months. For model validation, find out MAPE of 3 months.
+
+"""
+
+ts = time_series['item_count']
+
+ts
+
+train = ts[ts.index < '2021-07-01']
+test = ts[ts.index >= '2021-07-01']
+
+decompose = seasonal_decompose(train)
+
+trend = decompose.trend
+seasonality = decompose.seasonal
+resid = decompose.resid
+
+fig, ax = plt.subplots(4,1, figsize = (30,8 ))
+ax[0].plot(train)
+ax[1].plot(trend)
+ax[2].plot(seasonality)
+ax[3].plot(resid)
+plt.show()
+
+ts
+
+model_final = ExponentialSmoothing(train,trend='add', seasonal='add', seasonal_periods=12).fit()
+
+prediction = model_final.predict(start = '2021-07-01', end = '2021-12-31')
+
+mape_exp_smoothning = mean_absolute_percentage_error(y_true = test, y_pred = prediction )
+print("MAPE for Exponential Smoothening : ", mape_exp_smoothning)
+
+"""## function to check stationarity"""
+
+def test_stationarity(ts):
+    # mean and variance for the series
+    f , ax = plt.subplots(1,2, figsize = (25,5))
+    ax[0].plot(ts, label = 'Original')
+
+    # rolling stats
+    rolling_mean = ts.rolling(window = 12).mean()
+    rolling_std = ts.rolling(window = 12).std()
+
+    ax[0].plot(rolling_mean, color = 'red', label = 'Rolling Mean')
+    ax[0].plot(rolling_std, color = 'black', label = 'Rolling STD')
+    ax[0].legend(loc = 'best')
+
+    # Adfuller test
+    dftest = adfuller(ts)
+    df = pd.Series(dftest[:4], index = ['Test Statistics', 'p-value', '# Lags Used', '# Obs used'])
+
+    if (df['p-value'] >= 0.05):
+        ax[1].annotate('Fail to Reject the Null'.center(35), xy = (0.25, 0.8), size = 25)
+        ax[1].annotate('Non Stationary'.center(35), xy = (0.25, 0.7), size = 25)
+    else :
+        ax[1].annotate('Reject the Null'.center(35), xy = (0.25, 0.8), size = 25)
+        ax[1].annotate('Stationary'.center(35), xy = (0.25, 0.7), size = 25)
+
+    c = 0.4
+    for i in range(4):
+        text = '{}    : {:.4f}'.format(df.index[i], df[i])
+        ax[1].annotate(text, xy = (0.1, c), size = 15)
+        c -= 0.1
+    c = 0.4
+    for i in dftest[4].keys():
+        text = 'Critical Value {}    : {:.4f}'.format(i, dftest[4][i])
+        ax[1].annotate(text, xy = (0.5, c), size = 15)
+        c -= 0.1
+    ax[1].get_xaxis().set_visible(False)
+    ax[1].get_yaxis().set_visible(False)
+    ax[1].axis('off')
+    plt.show()
+
+test_stationarity(train)
+
+lag_acf = acf(train, nlags = 20)
+plt.figure(figsize = (15,5))
+plt.bar(range(1, 22),lag_acf)
+plt.plot(lag_acf)
+plt.axhline(y = 0, linestyle = '--', color = 'red')
+plt.axhline(y = -1.96/np.sqrt(len(train)), linestyle = '--', color = 'red')
+plt.axhline(y = 1.96/np.sqrt(len(train)), linestyle = '--', color = 'red')
+plt.show()
+
+lag_pacf = pacf(train, nlags = 20, method= 'ols')
+plt.figure(figsize = (15,5))
+plt.bar(range(1, 22),lag_pacf)
+plt.plot(lag_pacf, color = 'red')
+plt.axhline(y = 0, linestyle = '--', color = 'gray')
+plt.axhline(y = -1.96/np.sqrt(len(train)), linestyle = '--', color = 'gray')
+plt.axhline(y = 1.96/np.sqrt(len(train)), linestyle = '--', color = 'gray')
+plt.show()
+
+"""# ACF : q term = 2
+# PACF : p term = 5
+
+## auto Arima
+"""
+
+model = auto_arima(train, trace = True )
+model.fit(train)
+
+fit = model.predict_in_sample(train)
+forecast = model.predict(n_periods=len(test))
+test.index
+
+plt.figure(figsize = (10,5))
+plt.plot(train, color = 'black', label = 'train')
+plt.plot(fit[1:], color = 'blue', label = 'train-fit')
+plt.plot(test, color = 'red', label = 'test- actual')
+plt.plot(test.index, forecast,color = 'green', label = 'test- forecast')
+plt.legend()
+plt.show()
+
+"""# MAPE"""
+
+mape_arima = mean_absolute_percentage_error(y_true = test, y_pred = forecast)
+print("MAPE for ARIMA : ", mape_arima)
+
+"""# forecast for 3 months"""
+
+model = auto_arima(ts, trace = True )
+model.fit(ts)
+
+model.predict(n_periods = 3*30)
+
+"""# restaurant wise prediction using auto arima"""
+
+def arima_func(train, test):
+  model = auto_arima(train )
+  model.fit(train)
+  pred_test = model.predict(n_periods  = len(test))
+  mape_arima = mean_absolute_percentage_error(y_true = test, y_pred = pred_test)
+  return mape_arima
+
+restaurants.head()
+
+mape_results = {}
+for rest in restaurants.store_id:
+  ts = merged_data[merged_data.store_id == rest].groupby('date')['item_count'].sum()
+  train = ts[ts.index < '01-07-2021']
+  test = ts[ts.index >='01-07-2021']
+  mape_results[rest] = arima_func(train,test)
+
+mape_results
+
+"""# Forecasting using Deep Learning
+
+"""
+
+time_ser = data.groupby('date').agg({'sales_amount': 'sum'})
+time_ser
+
+train = time_ser[time_ser.index < '2021-07-01']
+test = time_ser[time_ser.index >= '2021-07-01']
+
+"""# data scaling"""
+
+scaler = MinMaxScaler()
+scaler.fit(train)
+scaled_train = scaler.transform(train)
+scaled_test = scaler.transform(test)
+
+# We're only using one feature in our time series
+n_features = 1
+length = 12
+
+generator = TimeseriesGenerator(scaled_train, scaled_train, length=length, batch_size=1)
+
+model = Sequential()
+model.add(LSTM(100, activation='relu', input_shape=(length, n_features)))
+model.add(Dense(1))
+model.compile(optimizer='adam', loss='mse')
+
+early_stop = EarlyStopping(monitor='val_loss',patience=2)
+
+validation_generator = TimeseriesGenerator(scaled_test,scaled_test, length=length, batch_size=1)
+
+"""## fit model"""
+
+model.fit_generator(generator,epochs=10,
+                    validation_data=validation_generator,
+                   callbacks=[early_stop])
+
+losses = pd.DataFrame(model.history.history)
+losses.plot()
+
+"""## Evaluate"""
+
+test_predictions = []
+first_eval_batch = scaled_train[-length:]
+current_batch = first_eval_batch.reshape((1, length, n_features))
+for i in range(len(test)):
+    current_pred = model.predict(current_batch)[0]
+    # store prediction
+    test_predictions.append(current_pred)
+    # update batch to now include prediction and drop first value
+    current_batch = np.append(current_batch[:,1:,:],[[current_pred]],axis=1)
+
+"""# inverse to get true predictions"""
+
+true_predictions = scaler.inverse_transform(test_predictions)
+
+test['Predictions'] = true_predictions
+
+test
+
+plt.figure(figsize = (10,5))
+plt.plot(train, color = 'blue', label = 'train')
+plt.plot(test.sales_amount, color = 'red', label = 'test- actual')
+plt.plot(test.index, test.Predictions,color = 'green', label = 'test- forecast')
+plt.legend()
+plt.show()
+
+test.plot(figsize=(12,8))
+
+mape_dl = mean_absolute_percentage_error(y_true = test.sales_amount, y_pred = test.Predictions)
+print("MAPE for LSTM : ", mape_dl)
+
+full_scaler = MinMaxScaler()
+scaled_full_data = full_scaler.fit_transform(time_ser)
+
+length = 3*30 # Length of the output sequences (in number of timesteps)
+generator = TimeseriesGenerator(scaled_full_data, scaled_full_data, length=length, batch_size=1)
+
+# LSTM MODEL
+model = Sequential()
+model.add(LSTM(100, activation='relu', input_shape=(length, n_features)))
+model.add(Dense(1))
+model.compile(optimizer='adam', loss='mse')
+# fit model
+model.fit_generator(generator,epochs=8)
+
+forecast = []
+periods = 3*30
+
+first_eval_batch = scaled_full_data[-length:]
+current_batch = first_eval_batch.reshape((1, length, n_features))
+
+for i in range(periods):
+
+    # get prediction 1 time stamp ahead ([0] is for grabbing just the number instead of [array])
+    current_pred = model.predict(current_batch)[0]
+
+    # store prediction
+    forecast.append(current_pred)
+
+    # update batch to now include prediction and drop first value
+    current_batch = np.append(current_batch[:,1:,:],[[current_pred]],axis=1)
+
+forecast = scaler.inverse_transform(forecast)
+
+forecast_dates = pd.date_range(start='2022-01-01 ',periods=3*30, freq = "D")
+
+forecast_data = pd.DataFrame(data=forecast,index=forecast_dates,
+                           columns=['Forecast']).squeeze()
+
+forecast_data
+
+time_ser
+
+plt.figure(figsize = (10,5))
+plt.plot(train.index, train.sales_amount, color = 'steelblue', label = 'original series')
+plt.plot(test.index, test.sales_amount,color = 'seagreen', label = 'test- actual')
+plt.plot(test.index, test.Predictions,color = 'aquamarine', label = 'test- forecast')
+plt.plot(forecast_data.index, forecast_data.values, color = 'brown', label = 'test- forecast')
+plt.legend()
+plt.show()
+
+mape_arima, mape_dl, mape_exp_smoothning
+
+pd.DataFrame([mape_exp_smoothning, mape_arima, mape_dl ], index = ['Exponential Smoothening', 'ARIMA', 'LSTM'])
+
